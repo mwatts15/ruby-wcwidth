@@ -1,5 +1,5 @@
 Gem::Specification.new {|g|
-    g.name          = 'wcwidth'
+    g.name          = 'markw-wcwidth'
     g.version       = '0.0.2'
     g.author        = 'markw'
     g.email         = 'wattsmark2015@gmail.com'
