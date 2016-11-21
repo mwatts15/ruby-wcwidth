@@ -66,17 +66,17 @@ class String
     0xE0100..0xE01EF]
 
 protected
-  def bisearch(table)
-    max, min, mid = table.size - 1, 0, 0
+  def self.bisearch(ucs)
+    max, min, mid = COMBINING.size - 1, 0, 0
 
-    return false if self.ord < table.first.begin or self.ord > table.last.end
+    return false if ucs < COMBINING.first.begin or ucs > COMBINING.last.end
 
     while max >= min
       mid = (min + max) / 2
 
-      if self.ord > table[mid].end
+      if ucs > COMBINING[mid].end
         min = mid + 1
-      elsif (self.ord < table[mid].first)
+      elsif (ucs < COMBINING[mid].first)
         max = mid - 1
       else
         return true
@@ -86,44 +86,44 @@ protected
     false
   end
 
-  def mk_wcwidth
-    return 0 if self.ord == 0
-
-    return -1 if self.ord < 32 or (self.ord >= 0x7f and self.ord < 0xa0)
-
-    return 0 if bisearch(COMBINING)
-
-    1 + self.ord.tap {|ucs|
-      break (ucs >= 0x1100 and                # Hangul Jamu init. consonants
-      (ucs <= 0x115f or
-       ucs == 0x2329 or ucs == 0x232a or
-       (ucs >= 0x2e80 and ucs <= 0xa4cf &&
-        ucs != 0x303f) or                     # CJK ... Yi
-       (ucs >= 0xac00 and ucs <= 0xd7a3) or   # Hangul Syllables
-       (ucs >= 0xf900 and ucs <= 0xfaff) or   # CJK Compatibility Ideographs
-       (ucs >= 0xfe10 and ucs <= 0xfe19) or   # Vertical forms
-       (ucs >= 0xfe30 and ucs <= 0xfe6f) or   # CJK Compatibility Forms
-       (ucs >= 0xff00 and ucs <= 0xff60) or   # Fullwidth Forms
-       (ucs >= 0xffe0 and ucs <= 0xffe6) or
-       (ucs >= 0x20000 and ucs <= 0x2fffd) or
-       (ucs >= 0x30000 and ucs <= 0x3fffd))) ? 1 : 0
-    }
-  end
-
   def mk_wcswidth
-    ws = self.each_char.map(&:width)
-    return -1 unless ws.all?{|x|x>=0}
-    ws.inject(:+)
+    res = 0
+    self.each_codepoint do |ucs|
+        z = if ucs == 0
+             0
+           elsif ucs < 32 or (ucs >= 0x7f and ucs < 0xa0)
+             -1
+           elsif (ucs >= 0x1100 and                # Hangul Jamu init. consonants
+             (ucs <= 0x115f or
+              ucs == 0x2329 or ucs == 0x232a or
+              (ucs >= 0x2e80 and ucs <= 0xa4cf &&
+               ucs != 0x303f) or                     # CJK ... Yi
+              (ucs >= 0xac00 and ucs <= 0xd7a3) or   # Hangul Syllables
+              (ucs >= 0xf900 and ucs <= 0xfaff) or   # CJK Compatibility Ideographs
+              (ucs >= 0xfe10 and ucs <= 0xfe19) or   # Vertical forms
+              (ucs >= 0xfe30 and ucs <= 0xfe6f) or   # CJK Compatibility Forms
+              (ucs >= 0xff00 and ucs <= 0xff60) or   # Fullwidth Forms
+              (ucs >= 0xffe0 and ucs <= 0xffe6) or
+              (ucs >= 0x20000 and ucs <= 0x2fffd) or
+              (ucs >= 0x30000 and ucs <= 0x3fffd)))
+             2
+           elsif String::bisearch(ucs)
+             0
+           else
+             1
+           end
+
+        if z < 0
+          res = -1
+          break
+        end
+        res += z
+    end
+    res
   end
 
 public
   def width
-    if self.size == 0
-      0
-    elsif self.size == 1
-      self.mk_wcwidth
-    else
-      self.mk_wcswidth
-    end
+    self.mk_wcswidth
   end
 end
